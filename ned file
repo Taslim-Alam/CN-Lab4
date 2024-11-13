@@ -1,0 +1,36 @@
+simple protocolpros
+{
+    parameters:
+        int limit = default(2);
+        bool sendMsgOnInit = default(false);
+        int source = default(0);
+        int destination = default(5);
+        double interval = default(1); // Time interval for generating messages (exponential distribution)
+    gates:
+        inout gate[];  // Vector gate
+}
+
+network lab4
+{
+    types:
+        channel Channel extends ned.DelayChannel
+        {
+            delay = 100ms;
+        }
+    submodules:
+        protocolpros[11]: protocolpros {
+            @display("i=abstract/server");
+        }
+    connections:
+        protocolpros[0].gate++ <--> Channel <--> protocolpros[3].gate++;
+        protocolpros[1].gate++ <--> Channel <--> protocolpros[9].gate++;
+        protocolpros[2].gate++ <--> Channel <--> protocolpros[5].gate++;
+        protocolpros[3].gate++ <--> Channel <--> protocolpros[4].gate++;
+        protocolpros[4].gate++ <--> Channel <--> protocolpros[6].gate++;
+        protocolpros[5].gate++ <--> Channel <--> protocolpros[8].gate++;
+        protocolpros[6].gate++ <--> Channel <--> protocolpros[7].gate++;
+        protocolpros[7].gate++ <--> Channel <--> protocolpros[2].gate++;
+        protocolpros[8].gate++ <--> Channel <--> protocolpros[1].gate++;
+        protocolpros[9].gate++ <--> Channel <--> protocolpros[10].gate++;
+        protocolpros[10].gate++ <--> Channel <--> protocolpros[0].gate++;
+}
