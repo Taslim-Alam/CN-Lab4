@@ -1,0 +1,119 @@
+ /*
+ * lab4.cc
+ *
+ *  Created on: Oct 10, 2024
+ *     Author: Taslim Alam
+ */
+
+#include <omnetpp.h>
+using namespace omnetpp;
+
+class protocolpros : public cSimpleModule
+{
+  private:
+    int counter;
+    int src;
+    int dst;
+    simtime_t interval;
+    cMessage *generateEvent;  // Self-message for periodic generation
+
+  protected:
+    virtual void initialize() override;
+    virtual void handleMessage(cMessage *msg) override;
+    virtual void forwardMessage(cMessage *msg);
+    virtual void generateMessage();
+
+  public:
+    protocolpros() : generateEvent(nullptr) {}  // Constructor
+    virtual ~protocolpros();  // Destructor
+};
+
+Define_Module(protocolpros);
+
+protocolpros::~protocolpros()
+{
+    cancelAndDelete(generateEvent);  // Cleanup the self-message event
+}
+
+void protocolpros::initialize()
+{
+    counter = par("limit");
+    src = par("source");
+    dst = par("destination");
+    interval = par("interval").doubleValue();
+
+    EV << "Node initialized with counter: " << counter << ", src: " << src << ", dst: " << dst << "\n";
+
+    generateEvent = new cMessage("generateEvent");
+
+    if (par("sendMsgOnInit").boolValue() && getIndex() == src) {
+        generateMessage();
+    }
+
+    // Schedule periodic message generation
+    scheduleAt(simTime() + exponential(interval), generateEvent);
+}
+
+void protocolpros::handleMessage(cMessage *msg)
+{
+    if (msg == generateEvent) {
+        generateMessage();
+        scheduleAt(simTime() + exponential(interval), generateEvent);
+        return;
+    }
+
+    counter--;
+    EV << "Handling message: " << msg->getName() << ". Counter is now: " << counter << "\n";
+
+    if (counter <= 0) {
+        EV << getName() << "'s counter reached zero, deleting message and ending simulation.\n";
+        delete msg;
+        endSimulation();  // Manually stop the simulation when counter reaches zero
+    } else if (getIndex() == dst) {
+        EV << "Message " << msg->getName() << " arrived at destination\n";
+        delete msg;
+    } else {
+        forwardMessage(msg);
+    }
+}
+
+void protocolpros::generateMessage()
+{
+    if (counter <= 0) {
+        EV << "Counter reached zero, stopping message generation.\n";
+        return;  // Stop generating messages if the counter has reached zero
+    }
+
+    if (getIndex() == src) {
+        char msgname[20];
+        sprintf(msgname, "msg-%d", getIndex());
+        cMessage *msg = new cMessage(msgname);
+
+        int n = gateSize("gate$o");
+        if (n > 0) {
+            EV << "Generating and sending message: " << msgname << " via gate[0]\n";
+            send(msg, "gate$o", 0);
+        } else {
+            EV << "No available gates to send the message.\n";
+        }
+    }
+}
+
+void protocolpros::forwardMessage(cMessage *msg)
+{
+    int arrivalGateIndex = msg->getArrivalGate()->getIndex();
+    int n = gateSize("gate$o");
+
+    if (n > 0) {
+        int k;
+        do {
+            k = intuniform(0, n - 1);  // Randomly select an output gate
+        } while (k == arrivalGateIndex);  // Avoid sending back to the sender
+
+        EV << "Forwarding message " << msg->getName() << " on gate[" << k << "]\n";
+        send(msg, "gate$o", k);
+    } else {
+        EV << "No available output gates to forward the message.\n";
+        delete msg;
+    }
+}
