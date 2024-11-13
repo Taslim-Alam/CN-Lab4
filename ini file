@@ -1,0 +1,22 @@
+[General]
+network = lab4
+record-eventlog = true
+
+[Config Lab4_1]
+protocolpros[0].limit = 5
+protocolpros[0].source = 0
+protocolpros[0].destination = 4
+protocolpros[0].sendMsgOnInit = true
+protocolpros[0].interval = 2
+
+protocolpros[1].limit = 3
+protocolpros[1].source = 1
+protocolpros[1].destination = 3
+protocolpros[1].sendMsgOnInit = true
+protocolpros[1].interval = 1
+
+protocolpros[2].limit = 4
+protocolpros[2].source = 2
+protocolpros[2].destination = 5
+protocolpros[2].sendMsgOnInit = false
+protocolpros[2].interval = 3
